@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global safety net - default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE GLOBAL HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- ENTITY-SPECIFIC VALIDATIONS ---
+
+    function isValidActivity(data) {
+      return data.keys().hasAll(['id', 'title', 'imageUrl', 'description', 'date', 'uploader'])
+        && data.id is string && data.id.size() <= 128
+        && data.title is string && data.title.size() <= 150
+        && data.description is string && data.description.size() <= 2000
+        && data.imageUrl is string && data.imageUrl.size() <= 1000
+        && data.date is string && data.date.size() <= 50
+        && data.uploader is string && data.uploader.size() <= 100
+        && (!data.keys().contains('tags') || (data.tags is list && data.tags.size() <= 15))
+        && (!data.keys().contains('encryptionCode') || (data.encryptionCode is string && data.encryptionCode.size() <= 100));
+    }
+
+    function isValidAnnouncement(data) {
+      return data.keys().hasAll(['id', 'title', 'content', 'timestamp', 'severity'])
+        && data.id is string && data.id.size() <= 128
+        && data.title is string && data.title.size() <= 150
+        && data.content is string && data.content.size() <= 5000
+        && data.timestamp is string && data.timestamp.size() <= 50
+        && data.severity is string && (data.severity == 'INFO' || data.severity == 'WARNING' || data.severity == 'ALERT');
+    }
+
+    function isValidAgent(data) {
+      return data.keys().hasAll(['name', 'guild', 'level', 'exp', 'avatar', 'status'])
+        && data.name is string && data.name.size() <= 100
+        && data.guild is string && data.guild.size() <= 100
+        && data.level is int && data.level >= 0
+        && data.exp is int && data.exp >= 0
+        && data.avatar is string && data.avatar.size() <= 1000
+        && data.status is string && data.status.size() <= 100
+        && (!data.keys().contains('role') || (data.role is string && (data.role == 'siswa' || data.role == 'admin')))
+        && (!data.keys().contains('fullName') || (data.fullName is string && data.fullName.size() <= 150))
+        && (!data.keys().contains('nis') || (data.nis is string && data.nis.size() <= 50))
+        && (!data.keys().contains('jurusan') || (data.jurusan is string && data.jurusan.size() <= 100));
+    }
+
+    // --- COLLECTION RULES ---
+
+    // 1. Activities Collection
+    match /activities/{activityId} {
+      allow read: if true; // Activities are public on the landing page
+      allow create: if isSignedIn() && isValidId(activityId) && isValidActivity(incoming());
+      allow update: if isSignedIn() && isValidId(activityId) && isValidActivity(incoming());
+      allow delete: if isSignedIn() && isValidId(activityId);
+    }
+
+    // 2. Announcements Collection
+    match /announcements/{announcementId} {
+      allow read: if true; // Announcements are public
+      allow create: if isSignedIn() && isValidId(announcementId) && isValidAnnouncement(incoming());
+      allow update: if isSignedIn() && isValidId(announcementId) && isValidAnnouncement(incoming());
+      allow delete: if isSignedIn() && isValidId(announcementId);
+    }
+
+    // 3. Agents Collection
+    match /agents/{agentId} {
+      allow read: if true; // Allow reading agents for leaderboard and rosters
+      allow create: if isSignedIn() && isValidId(agentId) && isValidAgent(incoming()) && (
+        // Prevent setting their own role to admin upon creation unless authorized
+        incoming().get('role', 'siswa') != 'admin'
+      );
+      allow update: if isSignedIn() && isValidId(agentId) && isValidAgent(incoming()) && (
+        // Prevent regular students from escalating their own role
+        (existing().get('role', 'siswa') == 'admin' || incoming().get('role', 'siswa') != 'admin')
+      );
+      allow delete: if isSignedIn() && isValidId(agentId);
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "ActivityPhoto": {
+      "title": "ActivityPhoto",
+      "description": "Represents an activity photo in the gallery vault.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "date": { "type": "string" },
+        "uploader": { "type": "string" },
+        "tags": { "type": "array" },
+        "encryptionCode": { "type": "string" }
+      },
+      "required": ["id", "title", "imageUrl"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "An administrative announcement broadcasted to students.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "severity": { "type": "string", "enum": ["INFO", "WARNING", "ALERT"] }
+      },
+      "required": ["id", "title", "content"]
+    },
+    "Quest": {
+      "title": "Quest",
+      "description": "A system-wide mission/quest that students can complete.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "time": { "type": "string" },
+        "code": { "type": "string" },
+        "reward": { "type": "number" },
+        "status": { "type": "string", "enum": ["Locked", "On-time", "Success"] },
+        "description": { "type": "string" },
+        "scannedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "code", "reward"]
+    },
+    "Agent": {
+      "title": "Agent",
+      "description": "An agent profile representing a student or admin.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "guild": { "type": "string" },
+        "level": { "type": "number" },
+        "exp": { "type": "number" },
+        "avatar": { "type": "string" },
+        "status": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "siswa"] },
+        "fullName": { "type": "string" },
+        "nis": { "type": "string" },
+        "jurusan": { "type": "string" },
+        "completedQuests": { "type": "array" }
+      },
+      "required": ["name", "guild"]
+    }
+  },
+  "firestore": {
+    "/activities/{activityId}": {
+      "schema": "ActivityPhoto",
+      "description": "Collection of decrypted activity gallery vault photos."
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Collection of central system announcements."
+    },
+    "/agents/{agentId}": {
+      "schema": "Agent",
+      "description": "Collection of student/user agent profiles."
+    },
+    "/quests/{questId}": {
+      "schema": "Quest",
+      "description": "Collection of administrative mission quest profiles."
+    }
+  }
+}

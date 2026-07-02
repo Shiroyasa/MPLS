@@ -1,0 +1,6 @@
+{
+  "name": "MPLS Quest Check-In",
+  "description": "A gamified cyberpunk orientation application for MPLS 2026, featuring interactive scanner, agent profile customization, and quest tracking.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
